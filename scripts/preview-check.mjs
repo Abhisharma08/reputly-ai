@@ -1,0 +1,16 @@
+import {chromium} from 'playwright';
+import AxeBuilder from '@axe-core/playwright';
+const browser=await chromium.launch({headless:true});
+const page=await browser.newPage({viewport:{width:1440,height:1100},deviceScaleFactor:1});
+const errors=[];page.on('pageerror',e=>errors.push(e.message));
+await page.goto('http://127.0.0.1:4173/demo',{waitUntil:'networkidle'});
+await page.screenshot({path:'outputs/dashboard-desktop.png',fullPage:true});
+const audit=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();
+console.log(JSON.stringify({title:await page.title(),errors,violations:audit.violations.map(v=>({id:v.id,impact:v.impact,nodes:v.nodes.map(n=>({target:n.target,summary:n.failureSummary})).slice(0,12)}))},null,2));
+await page.setViewportSize({width:390,height:844});
+await page.screenshot({path:'outputs/dashboard-mobile.png',fullPage:true});
+await page.goto('http://127.0.0.1:4173/r/daily-grind-demo-1',{waitUntil:'networkidle'});
+await page.screenshot({path:'outputs/customer-mobile.png',fullPage:true});
+const customerAudit=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();
+console.log(JSON.stringify({customerViolations:customerAudit.violations.map(v=>({id:v.id,nodes:v.nodes.map(n=>({target:n.target,summary:n.failureSummary}))})),errors},null,2));
+await browser.close();
